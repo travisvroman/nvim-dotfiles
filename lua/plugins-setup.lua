@@ -28,7 +28,7 @@ return packer.startup(function(use)
 	-- lib functions used by plugins
 	use("nvim-lua/plenary.nvim")
 
-	use("bluz71/vim-nightfly-guicolors")
+	use("Mofiqul/adwaita.nvim")
 
 	use("christoomey/vim-tmux-navigator") -- tmux and split window navigation
 	use("szw/vim-maximizer") -- maximizes and restores current window.
@@ -54,7 +54,6 @@ return packer.startup(function(use)
 	-- autocomplete
 	use("hrsh7th/nvim-cmp")
 	use("hrsh7th/cmp-buffer")
-	use("hrsh7th/cmp-path")
 
 	-- snippets
 	use("L3MON4D3/LuaSnip")
