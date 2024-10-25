@@ -33,6 +33,9 @@ opt.clipboard:append("unnamedplus") -- use system clipboard to copy
 opt.splitright = true
 opt.splitbelow = true
 
+-- Global status line at bottom instead of one per window.
+opt.laststatus = 3
+
 --[[ opt.iskeyword:append("-") -- consider dash part of a word ]]
 
 -- Disable default fixme and todo highlighting
@@ -99,6 +102,8 @@ keymap.set("n", "<leader>2", ":e ~/.config/nvim/init.lua<CR>", { desc = "Edit nv
 -- plugin keymaps
 
 -- Comment
+-- For some reason, needs "/" to be mapped as "_". This used to be Windows only, but it seems like
+-- Linux and macOS require this in newer versions of neovim too.
 keymap.set("n", "<c-_>", ':call feedkeys("gbc")<cr>', { desc = "Toggle Comment line/block (normal)" })
 keymap.set("x", "<c-_>", "<Plug>(comment_toggle_blockwise_visual)<cr>", { desc = "Toggle Comment line/block (visual)" })
 
@@ -117,7 +122,13 @@ keymap.set("n", "<leader>fw", "<cmd>Telescope grep_string<cr>", { desc = "[F]ind
 keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>", { desc = "[F]ind in active [B]uffers" }) -- show active buffers
 keymap.set("n", "<leader>fr", "<cmd>Telescope oldfiles<cr>", { desc = "[F]ind [R]ecently opened files" })
 keymap.set("n", "<leader>fn", "<cmd>Telescope help_tags<cr>")
-keymap.set("n", "<leader>fd", "<cmd>Telescope diagnostics<cr>", { desc = "[F]ind in [D]iagnostics" })
+keymap.set("n", "<leader>fwd", "<cmd>Telescope diagnostics<cr>", { desc = "[f]ind in [w]orkspace [d]iagnostics" })
+keymap.set(
+	"n",
+	"<leader>fd",
+	"<cmd>Telescope diagnostics bufnr=0<cr>",
+	{ desc = "[f]ind in [d]iagnostics in current buffer" }
+)
 keymap.set("n", "<leader>ds", "<cmd>Telescope lsp_document_symbols<cr>", { desc = "Search [D]ocument [S]ymbols" }) -- list document symbols.
 keymap.set("n", "<leader>ws", "<cmd>Telescope lsp_workspace_symbols<cr>", { desc = "Search [W]orkspace [S]ymbols" }) -- list workspace symbols.
 keymap.set(
@@ -168,7 +179,7 @@ else
 	keymap.set("n", "<leader>br", "<C-w>s<cr>|<cmd>:term ./build-release.sh<cr>i", { desc = "[B]uild [R]elease" })
 	keymap.set("n", "<leader>bc", "<C-w>s<cr>|<cmd>:term ./clean.sh<cr>i", { desc = "[B]uild->[C]lean" })
 end
--- DAP debugger
+--[[ -- DAP debugger
 keymap.set("n", "<F5>", ":DapContinue<cr>")
 keymap.set("n", "<F9>", ":DapToggleBreakpoint<cr>")
 keymap.set("n", "<F10>", ":DapStepOver<cr>")
@@ -183,7 +194,7 @@ keymap.set("n", "<leader>dt", "<cmd>DapUIToggle<CR>")
 -- Register some DapUI commands for convenience.
 vim.api.nvim_create_user_command("DapUIOpen", "lua require'dapui'.open()", { nargs = 0 })
 vim.api.nvim_create_user_command("DapUIClose", "lua require'dapui'.close()", { nargs = 0 })
-vim.api.nvim_create_user_command("DapUIToggle", "lua require'dapui'.toggle()", { nargs = 0 })
+vim.api.nvim_create_user_command("DapUIToggle", "lua require'dapui'.toggle()", { nargs = 0 }) ]]
 
 -- Disable the F1 help key because it's annoyingly close to esc and keeps getting hit.
 keymap.set("n", "<F1>", "<nop>")
@@ -459,24 +470,26 @@ if not mason_lspconfig_status then
 	return
 end
 
-local mason_null_ls_status, mason_null_ls = pcall(require, "mason-null-ls")
-if not mason_null_ls_status then
+-- Replaces null-ls
+local mason_tool_installer_status, mason_tool_installer = pcall(require, "mason-tool-installer")
+if not mason_tool_installer_status then
 	return
 end
 
 mason.setup()
 
+local lspconfig_languages = {
+	"html",
+	"cssls",
+	"lua_ls",
+	"clangd", -- c
+}
+
 mason_lspconfig.setup({
-	ensure_installed = {
-		"tsserver",
-		"html",
-		"cssls",
-		"lua_ls",
-		"clangd", -- c
-	},
+	ensure_installed = lspconfig_languages,
 })
 
-mason_null_ls.setup({
+mason_tool_installer.setup({
 	ensure_installed = {
 		"prettier",
 		"stylua",
@@ -520,21 +533,17 @@ if not cmp_nvim_lsp_status then
 	return
 end
 
-local typescript_setup, typescript = pcall(require, "typescript")
-if not typescript_setup then
-	return
-end
 
 -- enable keywords for available lsp server
 local on_attach = function(client, bufnr)
 	-- set keybinds
 
 	-- typescript specific keymaps (e.g. rename file and update imports)
-	if client.name == "tsserver" then
+	--[[ if client.name == "ts_ls" then
 		keymap.set("n", "<leader>rf", ":TypescriptRenameFile<CR>") -- rename file and update imports
 		keymap.set("n", "<leader>oi", ":TypescriptOrganizeImports<CR>") -- organize imports (not in youtube nvim video)
 		keymap.set("n", "<leader>ru", ":TypescriptRemoveUnused<CR>") -- remove unused variables (not in youtube nvim video)
-	end
+	end ]]
 end
 
 -- used to enable auto completion
@@ -543,13 +552,6 @@ local capabilities = require("cmp_nvim_lsp").default_capabilities()
 lspconfig["html"].setup({
 	capabilities = capabilities,
 	on_attach = on_attach,
-})
-
-typescript.setup({
-	server = {
-		capabilities = capabilities,
-		on_attach = on_attach,
-	},
 })
 
 lspconfig["cssls"].setup({
@@ -562,6 +564,9 @@ clangd_capabilities.offsetEncoding = "utf-8"
 lspconfig["clangd"].setup({
 	capabilities = clangd_capabilities,
 	on_attach = on_attach,
+	settings = {
+		clangd = {},
+	},
 })
 
 lspconfig["lua_ls"].setup({
@@ -585,10 +590,38 @@ lspconfig["lua_ls"].setup({
 })
 
 -- ----------------------------
--- null-ls
+-- conform
+-- ----------------------------
+local conform_setup, conform = pcall(require, "conform")
+if not conform_setup then
+	return
+end
+
+local conform_formatters = {
+	css = { "prettier" },
+	html = { "prettier" },
+	json = { "prettier" },
+	yaml = { "prettier" },
+	markdown = { "prettier" },
+	lua = { "stylua" },
+}
+
+
+conform.setup({
+	-- NOTE: Available formatters: https://github.com/stevearc/conform.nvim#formatters
+	formatters_by_ft = conform_formatters,
+	format_on_save = {
+		lsp_fallback = true,
+		async = false,
+		timeout_ms = 500,
+	},
+})
+
+-- ----------------------------
+-- null-ls NOTE: Leaving until new setup is confirmed.
 -- ----------------------------
 
-local nullls_setup, null_ls = pcall(require, "null-ls")
+--[[ local nullls_setup, null_ls = pcall(require, "null-ls")
 if not nullls_setup then
 	return
 end
@@ -641,7 +674,7 @@ null_ls.setup({
 			})
 		end
 	end,
-})
+}) ]]
 
 -- ----------------------------
 -- autopairs
@@ -698,20 +731,14 @@ treesitter.setup({
 	-- ensure these language parsers are installed
 	ensure_installed = {
 		"json",
-		"javascript",
-		"typescript",
-		"tsx",
 		"yaml",
 		"html",
 		"css",
 		"markdown",
 		"markdown_inline",
-		"svelte",
-		"graphql",
 		"bash",
 		"lua",
 		"vim",
-		"dockerfile",
 		"gitignore",
 		"c",
 	},
@@ -767,6 +794,8 @@ end
 -- LEFTOFF: This is where I left off.
 
 -- TODO(travis): This is a travis-specific todo.
+--
+-- nocheckin
 
 local setup_config = {
 	keywords = {
@@ -775,9 +804,10 @@ local setup_config = {
 		NOTE = { color = "#008000" },
 		FIXME = { color = "#f06292" },
 		LEFTOFF = { color = "#ffff99" },
+		nocheckin = { color = "#ff00ff" },
 	},
 	highlight = {
-		pattern = [[(KEYWORDS)\s*(\([^\)]*\))?:]],
+		pattern = [[(KEYWORDS|keywords)\s*(\([^\)]*\))?:]],
 		keyword = "fg",
 	},
 }
@@ -785,7 +815,7 @@ local setup_config = {
 todocomments.setup(setup_config)
 
 -- Debug adapter
-require("travis.dap_config")
+--[[ require("travis.dap_config") ]]
 
 --[[ local dap = require("dap")
 local api = vim.api
@@ -827,3 +857,6 @@ local reload = function()
 	dofile(vim.env.MYVIMRC)
 end
 vim.api.nvim_create_user_command("ConfigReload", reload, { nargs = 0 })
+
+-- Remap some things because of my lazy shift finger, XD.
+vim.api.nvim_create_user_command("Wa", ":wa", { nargs = 0 })

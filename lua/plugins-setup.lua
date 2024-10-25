@@ -1,3 +1,9 @@
+local M = {}
+
+M.__HAS_NVIM_08 = vim.fn.has("nvim-0.8") == 1
+M.__HAS_NVIM_010 = vim.fn.has("nvim-0.10") == 1
+M.IS_WINDOWS = vim.fn.has("win32") == 1 or vim.fn.has("win64") == 1
+
 local ensure_packer = function()
 	local fn = vim.fn
 	local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
@@ -42,13 +48,23 @@ return packer.startup(function(use)
 	use("nvim-tree/nvim-tree.lua")
 
 	-- icons
-	use("kyazdani42/nvim-web-devicons")
+	--[[ use("kyazdani42/nvim-web-devicons") ]]
+	use("nvim-tree/nvim-web-devicons")
 
 	-- status bar/line
 	use("nvim-lualine/lualine.nvim")
 
 	-- fuzzy finding
-	use({ "nvim-telescope/telescope-fzf-native.nvim", run = "make" })
+	-- NOTE: This works differently on Windows and requires cmake.
+	if vim.fn.has("win32") == 1 then
+		use({
+			"nvim-telescope/telescope-fzf-native.nvim",
+			run = "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build",
+		})
+	else
+		use({ "nvim-telescope/telescope-fzf-native.nvim", run = "make" })
+	end
+
 	use({ "nvim-telescope/telescope.nvim", branch = "0.1.x" })
 
 	-- autocomplete
@@ -63,17 +79,18 @@ return packer.startup(function(use)
 	-- managing and installing LSP servers, linters and formatters.
 	use("williamboman/mason.nvim")
 	use("williamboman/mason-lspconfig.nvim")
+	use("WhoIsSethDaniel/mason-tool-installer.nvim")
 
 	-- configure servers
 	use("neovim/nvim-lspconfig")
 	use("hrsh7th/cmp-nvim-lsp")
 	use({ "glepnir/lspsaga.nvim", branch = "main" })
-	use("jose-elias-alvarez/typescript.nvim") --ts specific stuff, like rename, etc.
 	use("onsails/lspkind.nvim")
 
 	-- formatting and linting
-	use("jose-elias-alvarez/null-ls.nvim")
-	use("jayp0521/mason-null-ls.nvim")
+	--[[ use("jose-elias-alvarez/null-ls.nvim") ]]
+	use("stevearc/conform.nvim")
+	--[[ use("jayp0521/mason-null-ls.nvim") ]]
 
 	-- treesitter
 	use({
