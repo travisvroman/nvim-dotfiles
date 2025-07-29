@@ -41,7 +41,6 @@ opt.laststatus = 3
 -- Disable default fixme and todo highlighting
 vim.cmd("hi clear FIXME")
 vim.cmd("hi clear TODO")
---[[ require("travis.core.options") ]]
 
 -- ----------------------------
 -- Keymaps
@@ -232,6 +231,8 @@ comment.setup()
 
 -- ----------------------------
 -- nvim-tree
+-- 
+-- Provides a tree view file browser.
 -- ----------------------------
 
 local nvimtree_setup, nvimtree = pcall(require, "nvim-tree")
@@ -289,11 +290,13 @@ local function open_nvim_tree(data)
 	require("nvim-tree.api").tree.open()
 end
 
--- NOTE: Enabling this will open this on startup.
+-- NOTE: Enabling this will open the nvim tree on startup.
 -- vim.api.nvim_create_autocmd({ "VimEnter" }, { callback = open_nvim_tree })
 
 -- ----------------------------
 -- lualine
+--
+-- Styles the status bar
 -- ----------------------------
 
 local lualine_status, lualine = pcall(require, "lualine")
@@ -339,6 +342,8 @@ lualine.setup({
 
 -- ----------------------------
 -- telescope
+--
+-- Extensible fuzzy finder. Requires ripgrep to be installed on system to function.
 -- ----------------------------
 
 local telescope_setup, telescope = pcall(require, "telescope")
@@ -356,7 +361,7 @@ local telescopeConfig = require("telescope.config")
 -- Clone the default Telescope configuration
 local vimgrep_arguments = { unpack(telescopeConfig.values.vimgrep_arguments) }
 
--- I want to search in hidden/dot files.
+-- Include hidden/dot files in search results.
 table.insert(vimgrep_arguments, "--hidden")
 table.insert(vimgrep_arguments, "--no-ignore-vcs")
 table.insert(vimgrep_arguments, "--glob")
@@ -403,20 +408,29 @@ telescope.load_extension("fzf")
 
 -- ----------------------------
 -- nvim-cmp
+--
+-- Provides code completion.
 -- ----------------------------
-
--- completion plugin
 local cmp_status, cmp = pcall(require, "cmp")
 if not cmp_status then
 	return
 end
 
--- snippet plugin
+-- ----------------------------
+-- luasnip
+--
+-- Provides snippets.
+-- ----------------------------
 local luasnip_status, luasnip = pcall(require, "luasnip")
 if not luasnip_status then
 	return
 end
 
+-- ----------------------------
+-- lspkind
+--
+-- Visual enhancement of LSP completion items.
+-- ----------------------------
 local lspkind_status, lspkind = pcall(require, "lspkind")
 if not lspkind_status then
 	return
@@ -457,7 +471,10 @@ cmp.setup({
 })
 
 -- ----------------------------
--- mason
+-- Mason
+--
+-- Provides a repository and frontend that helps manage the installation of various third-party tools
+-- (LSP servers, formatters, linters, etc...) that can be useful when running neovim
 -- ----------------------------
 
 local mason_status, mason = pcall(require, "mason")
@@ -465,12 +482,22 @@ if not mason_status then
 	return
 end
 
+-- ----------------------------
+-- Mason-LSP-Config
+-- 
+-- Uses Mason to ensure installation of user specified LSP servers and will tell 
+-- nvim-lspconfig what command to use to launch those servers.
+-- ----------------------------
 local mason_lspconfig_status, mason_lspconfig = pcall(require, "mason-lspconfig")
 if not mason_lspconfig_status then
 	return
 end
 
--- Replaces null-ls
+-- ----------------------------
+-- mason-tool-installer
+--
+-- a Neovim plugin that streamlines the installation and management of various external development tools used with Neovim. It acts as an installer for packages available through mason.nvim, which is a portable package manager for Neovim. Replaces null-ls.
+-- ----------------------------
 local mason_tool_installer_status, mason_tool_installer = pcall(require, "mason-tool-installer")
 if not mason_tool_installer_status then
 	return
@@ -478,15 +505,13 @@ end
 
 mason.setup()
 
-local lspconfig_languages = {
-	"html",
-	"cssls",
-	"lua_ls",
-	"clangd", -- c
-}
-
 mason_lspconfig.setup({
-	ensure_installed = lspconfig_languages,
+	-- NOTE: Do not include clangd here, as it is handled in lspconfig below
+	ensure_installed = {
+		"html",
+		"cssls",
+		"lua_ls",
+	},
 })
 
 mason_tool_installer.setup({
@@ -499,8 +524,9 @@ mason_tool_installer.setup({
 
 -- ----------------------------
 -- lspsaga
+--
+-- Provides additional functions like 'hover', diagnostics, code actions, etc.
 -- ----------------------------
-
 local saga_status, saga = pcall(require, "lspsaga")
 if not saga_status then
 	return
@@ -521,18 +547,25 @@ saga.setup({
 
 -- ----------------------------
 -- lspconfig
+--
+-- Provides (very) basic configurations for LSP servers, and a simpler configuration to 
+-- interact with neovim. One thing it does not, and cannot easily, provide is the path to the 
+-- command to use when launching the server. That is handled by mason-lspconfig.
 -- ----------------------------
-
 local lspconfig_status, lspconfig = pcall(require, "lspconfig")
 if not lspconfig_status then
 	return
 end
 
+-- ----------------------------
+-- cmp_nvim_lsp
+--
+-- A source plugin for nvim-cmp, which is a powerful autocompletion framework for Neovim. Its primary function is to integrate Neovim's built-in Language Server Protocol (LSP) client with nvim-cmp, enabling nvim-cmp to display completion suggestions provided by language servers.
+-- ----------------------------
 local cmp_nvim_lsp_status, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
 if not cmp_nvim_lsp_status then
 	return
 end
-
 
 -- enable keywords for available lsp server
 local on_attach = function(client, bufnr)
@@ -564,9 +597,6 @@ clangd_capabilities.offsetEncoding = "utf-8"
 lspconfig["clangd"].setup({
 	capabilities = clangd_capabilities,
 	on_attach = on_attach,
-	settings = {
-		clangd = {},
-	},
 })
 
 lspconfig["lua_ls"].setup({
@@ -591,6 +621,8 @@ lspconfig["lua_ls"].setup({
 
 -- ----------------------------
 -- conform
+--
+-- Allows additional formatter config/override capabilities. Also provides format on save.
 -- ----------------------------
 local conform_setup, conform = pcall(require, "conform")
 if not conform_setup then
@@ -606,7 +638,6 @@ local conform_formatters = {
 	lua = { "stylua" },
 }
 
-
 conform.setup({
 	-- NOTE: Available formatters: https://github.com/stevearc/conform.nvim#formatters
 	formatters_by_ft = conform_formatters,
@@ -616,65 +647,6 @@ conform.setup({
 		timeout_ms = 500,
 	},
 })
-
--- ----------------------------
--- null-ls NOTE: Leaving until new setup is confirmed.
--- ----------------------------
-
---[[ local nullls_setup, null_ls = pcall(require, "null-ls")
-if not nullls_setup then
-	return
-end
-
-local formatting = null_ls.builtins.formatting
-local diagnostics = null_ls.builtins.diagnostics
-
-local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
-
-null_ls.setup({
-	sources = {
-		formatting.prettier.with({
-			extra_args = { "--config", "./prettierrc" },
-			condition = function(utils)
-				return utils.root_has_file("./prettierrc")
-			end,
-		}),
-		formatting.stylua.with({
-			filetypes = { "lua" },
-		}),
-		formatting.eslint_d.with({
-			condition = function(utils)
-				return utils.root_has_file("./eslintrc.js")
-			end,
-		}),
-		formatting.clang_format,
-	},
-	-- format on save
-	on_attach = function(current_client, bufnr)
-		if current_client.supports_method("textDocument/formatting") then
-			vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
-			vim.api.nvim_create_autocmd("BufWritePre", {
-				group = augroup,
-				buffer = bufnr,
-				callback = function()
-					vim.lsp.buf.format({
-						filter = function(client)
-							if client.name == "clangd" or client.name == "clang_format" then
-								local ft = vim.bo.filetype
-								if ft == "c" or ft == "cpp" or ft == "objc" or ft == "objcpp" then
-									return true
-								end
-							end
-							-- Only use null-ls for formatting
-							return client.name == "null-ls"
-						end,
-						bufnr = bufnr,
-					})
-				end,
-			})
-		end
-	end,
-}) ]]
 
 -- ----------------------------
 -- autopairs
@@ -710,9 +682,9 @@ cmp_plugin.event:on("confirm_done", cmp_autopairs.on_confirm_done())
 
 -- ----------------------------
 -- treesitter
+--
+-- Provides advanced code parsing capabilities that significantly enhance the editing experience.
 -- ----------------------------
-
--- import nvim-treesitter plugin safely
 local treesitter_status, treesitter = pcall(require, "nvim-treesitter.configs")
 if not treesitter_status then
 	return
@@ -740,7 +712,6 @@ treesitter.setup({
 		"lua",
 		"vim",
 		"gitignore",
-		"c",
 	},
 	-- auto install above language parsers
 	auto_install = true,
@@ -795,7 +766,7 @@ end
 
 -- TODO(travis): This is a travis-specific todo.
 --
--- nocheckin
+-- nocheckin TODO: something else //nocheckin
 
 local setup_config = {
 	keywords = {
@@ -804,12 +775,17 @@ local setup_config = {
 		NOTE = { color = "#008000" },
 		FIXME = { color = "#f06292" },
 		LEFTOFF = { color = "#ffff99" },
-		nocheckin = { color = "#ff00ff" },
+		NOCHECKIN = { color = "#ff00ff", alt = { "NOCHECKIN", "nocheckin" } },
 	},
 	highlight = {
-		pattern = [[(KEYWORDS|keywords)\s*(\([^\)]*\))?:]],
+		pattern = {
+			[[(NOCHECKIN|nocheckin)\s*]],
+			[[(KEYWORDS|keywords)\s*(\([^\)]*\))?:]],
+		},
 		keyword = "fg",
+		comments_only = true,
 	},
+	merge_keywords = true,
 }
 
 todocomments.setup(setup_config)
@@ -846,6 +822,7 @@ dap.listeners.after["event_terminated"]["me"] = function()
 	keymap_restore = {}
 end
 ]]
+
 -- Config reload functionality
 local reload = function()
 	for name, _ in pairs(package.loaded) do
@@ -860,3 +837,4 @@ vim.api.nvim_create_user_command("ConfigReload", reload, { nargs = 0 })
 
 -- Remap some things because of my lazy shift finger, XD.
 vim.api.nvim_create_user_command("Wa", ":wa", { nargs = 0 })
+vim.api.nvim_create_user_command("Qa", ":qa", { nargs = 0 })

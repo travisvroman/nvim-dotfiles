@@ -34,7 +34,8 @@ return packer.startup(function(use)
 	-- lib functions used by plugins
 	use("nvim-lua/plenary.nvim")
 
-	use("Mofiqul/adwaita.nvim")
+	-- Colourscheme, updated from original.
+	use("travisvroman/adwaita.nvim")
 
 	use("christoomey/vim-tmux-navigator") -- tmux and split window navigation
 	use("szw/vim-maximizer") -- maximizes and restores current window.
@@ -48,7 +49,6 @@ return packer.startup(function(use)
 	use("nvim-tree/nvim-tree.lua")
 
 	-- icons
-	--[[ use("kyazdani42/nvim-web-devicons") ]]
 	use("nvim-tree/nvim-web-devicons")
 
 	-- status bar/line
@@ -88,9 +88,7 @@ return packer.startup(function(use)
 	use("onsails/lspkind.nvim")
 
 	-- formatting and linting
-	--[[ use("jose-elias-alvarez/null-ls.nvim") ]]
 	use("stevearc/conform.nvim")
-	--[[ use("jayp0521/mason-null-ls.nvim") ]]
 
 	-- treesitter
 	use({
@@ -105,6 +103,7 @@ return packer.startup(function(use)
 
 	use("lewis6991/gitsigns.nvim")
 
+	-- Custom comment highlights
 	use("travisvroman/todo-comments.nvim")
 
 	use("mfussenegger/nvim-dap") -- visual debugger
